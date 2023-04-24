@@ -7,15 +7,18 @@ import at.kaindorf.rdp_fileexplorer.pojos.Directory;
 import at.kaindorf.rdp_fileexplorer.pojos.FileObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Slf4j
 @Controller
 @RequestMapping("/explorer")
+@SessionAttributes({"dirPath"})
 public class ExplorerController {
     private final DirectoryRepository directoryRepo;
     private final FileItemRepository fileItemRepo;
@@ -27,12 +30,44 @@ public class ExplorerController {
         this.linkRepo = linkRepo;
     }
 
-    @GetMapping
-    public List<FileObject> getDirContent(@RequestParam String dir) {
-        log.debug("dir: " + dir);
-        Directory directory = directoryRepo.getDirectoryByName(dir);
-        return directory.getContent();
+    @ModelAttribute
+    public void initModel(Model model) {
+        model.addAttribute("fileObject", new FileObject());
+        model.addAttribute("content", new ArrayList<FileObject>());
+    }
 
+    @GetMapping
+    public String getDirContent(@RequestParam(name = "dirName", defaultValue = "C:") String dirName, Model model) {
+        Directory currentDir = directoryRepo.getDirectoryByName(dirName);
+        updateModel(model, getDirPath(currentDir), currentDir.getContent());
+        return "explorerView";
+    }
+
+    @PostMapping("/up")
+    public String getUpDirContent(@RequestParam(name = "dirPath", defaultValue = "C:") String dirPath, Model model) {
+        String dirName = dirPath.equals("C:") ? "C:" : dirPath.substring(dirPath.lastIndexOf(File.separator) + 1);
+        System.out.println(dirName);
+        Directory currentDir = directoryRepo.getDirectoryByName(dirName);
+        Directory upDir = currentDir.getParent() == null ? currentDir : (Directory) currentDir.getParent();
+        updateModel(model, getDirPath(upDir), upDir.getContent());
+        return "explorerView";
+    }
+
+    public void updateModel(Model model, String dirPath, List<FileObject> fileItems) {
+        fileItems.sort(Comparator.comparing(FileObject::getName));
+        fileItems.sort(Comparator.comparing(c -> !(c instanceof Directory)));
+        model.addAttribute("dirPath", dirPath);
+        model.addAttribute("content", fileItems);
+    }
+
+    private String getDirPath(Directory currentDir) {
+        String dirPath = currentDir.getName();
+        Directory tmpDir = currentDir;
+        while (tmpDir.getParent() != null) {
+            tmpDir = (Directory) tmpDir.getParent();
+            dirPath = tmpDir.getName() + File.separator + dirPath;
+        }
+        return dirPath;
     }
 
 }

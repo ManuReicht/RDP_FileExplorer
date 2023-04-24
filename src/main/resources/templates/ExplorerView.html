@@ -4,19 +4,38 @@
     <meta charset="UTF-8">
     <title>File Explorer</title>
 </head>
-<body>
+<body style="font-family:monospace">
 <h1>File Explorer</h1>
-<form method="post" th:action="@{/explorer}">
-    <input name="up" type="submit" value="up">
-    <input id="tfPath" name="dir" readonly th:value="${dir}" type="text">
+<form method="post" th:action="@{/explorer/up}" th:object="${currentDir}">
+    <input name="up" style="background-color: gold" type="submit" value=" ^ up"></input>
+    <input th:name="dirPath" th:value="${dirPath}" type="hidden">
+    <span style="border: 1px solid red; width:35%;text-align:left;display:inline-block;" th:text="${dirPath}"></span>
 </form>
-<div id="data"></div>
 <hr>
-<form>
-    <label>insert</label>
-    <input id="typeDir" name="type" type="radio" value="directory">
-    <input id="typeFile" name="type" type="radio" value="file"><br>
-    <label>Name:</label>
+<table style="width:35%">
+    <tr th:each="fobj : ${content}">
+        <form method="get" th:action="@{/explorer}">
+            <td th:if="${fobj instanceof T(at.kaindorf.rdp_fileexplorer.pojos.Directory)}">
+                <input th:name="dirName" th:value="${fobj.name}" type="submit"></td>
+            <td th:unless="${fobj instanceof T(at.kaindorf.rdp_fileexplorer.pojos.Directory)}">
+                <span th:text="${fobj.name}"></span></td>
+            <td><span th:text="${#temporals.format(fobj.lastModified, 'dd.MM.yyyy HH:mm')}"></span></td>
+            <td style="text-align: right;" th:if="${fobj instanceof T(at.kaindorf.rdp_fileexplorer.pojos.FileItem)}">
+                <span th:text="${fobj.size/1000 + ' KB'}"></span></td>
+        </form>
+    </tr>
+</table>
+<hr>
+<form method="post" th:action="@{/explorer/create}" th:object="${fileObject}">
+    <input th:name="dirPath" th:value="${dirPath}" type="hidden">
+    <span style="font-weight: bolder">insert</span>
+    <input checked="checked" id="dir" th:name="type" th:value="directory" type="radio">
+    <label for="dir">directory</label>
+    <input id="file" th:name="type" th:value="file" type="radio">
+    <label for="file">file</label><br/>
+    <label for="name">Name: </label>
+    <input id="name" th:field="*{name}" type="text">
+    <input type="submit" value="create">
 </form>
 </body>
 </html>
