@@ -1,26 +1,26 @@
 package at.kaindorf.rdp_fileexplorer.pojos;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@RequiredArgsConstructor
 @Entity
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type",
-        discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorColumn(name = "type")
 public class FileObject {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+    @NonNull
     private String name;
+    @NonNull
     private LocalDateTime lastModified;
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "parent")
     private FileObject parent;
 }

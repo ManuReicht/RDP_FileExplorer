@@ -4,6 +4,7 @@ import at.kaindorf.rdp_fileexplorer.database.DirectoryRepository;
 import at.kaindorf.rdp_fileexplorer.database.FileItemRepository;
 import at.kaindorf.rdp_fileexplorer.database.LinkRepository;
 import at.kaindorf.rdp_fileexplorer.pojos.Directory;
+import at.kaindorf.rdp_fileexplorer.pojos.FileItem;
 import at.kaindorf.rdp_fileexplorer.pojos.FileObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -11,9 +12,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Random;
 
 @Slf4j
 @Controller
@@ -33,7 +35,6 @@ public class ExplorerController {
     @ModelAttribute
     public void initModel(Model model) {
         model.addAttribute("fileObject", new FileObject());
-        model.addAttribute("content", new ArrayList<FileObject>());
     }
 
     @GetMapping
@@ -50,6 +51,33 @@ public class ExplorerController {
         Directory currentDir = directoryRepo.getDirectoryByName(dirName);
         Directory upDir = currentDir.getParent() == null ? currentDir : (Directory) currentDir.getParent();
         updateModel(model, getDirPath(upDir), upDir.getContent());
+        return "explorerView";
+    }
+
+    @PostMapping("/create")
+    public String createContent(Model model, FileObject fileObject, @RequestParam(name = "type", defaultValue = "dir") String type,
+                                @RequestParam(name = "dirPath", defaultValue = "C:") String dirPath) {
+        FileObject newFileObject = null;
+        Random rand = new Random();
+        switch (type) {
+            case "directory":
+                newFileObject = new Directory(fileObject.getName(), LocalDateTime.now());
+                directoryRepo.save((Directory) newFileObject);
+                break;
+            case "file":
+                newFileObject = new FileItem(fileObject.getName(), LocalDateTime.now(), (rand.nextInt(100) + 1) * 100L);
+                fileItemRepo.save((FileItem) newFileObject);
+                break;
+        }
+        String parentDir = "C:";
+        if (!dirPath.equals("C:")) {
+            parentDir = dirPath.substring(dirPath.lastIndexOf(File.separator) + 1);
+        }
+        Directory parent = directoryRepo.getDirectoryByName(parentDir);
+        newFileObject.setParent(parent);
+        parent.addFileObject(newFileObject);
+        directoryRepo.save(parent);
+        updateModel(model, dirPath, parent.getContent());
         return "explorerView";
     }
 
